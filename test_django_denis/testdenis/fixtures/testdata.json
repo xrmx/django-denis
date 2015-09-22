@@ -1,0 +1,1 @@
+[{"fields": {"name": "even more data"}, "model": "testdenis.evenmoredata", "pk": 1}, {"fields": {"name": "some data", "evenmore": [1]}, "model": "testdenis.somedata", "pk": 1}, {"fields": {"somedata": 1}, "model": "testdenis.somemoredata", "pk": 1}]
