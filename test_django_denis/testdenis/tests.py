@@ -41,4 +41,4 @@ class TestDenis(TestCase):
        somedata_isback = SomeData.objects.filter(pk=1).exists()
        self.assertEqual(somedata_isback, True)
 
-       shutil.rmtree(outdir)
+       rmtree(outdir)
