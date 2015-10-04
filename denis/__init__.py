@@ -6,6 +6,7 @@ from django.core.management import call_command
 from django.template import Context, Template
 from django.conf import settings
 
+import json
 import os
 
 
@@ -44,6 +45,9 @@ class Denis(object):
         if not self.format:
             self.format = 'json'
 
+        # a cache of m2m fields per model
+        self.m2m_fields = {}
+
     def collect(self):
         collector = NestedObjects(using=self.using)
         collector.collect(self.qs)
@@ -52,6 +56,12 @@ class Denis(object):
         def model_name(obj):
             return "%s.%s" % (obj._meta.app_label, obj._meta.model_name)
 
+        def get_m2m_fields(model):
+            return [
+                f.name for f in model._meta.get_fields()
+                    if (f.many_to_many and not f.auto_created)
+            ]
+
         def collect_objects(obj):
             try:
                 iter(obj)
@@ -59,9 +69,11 @@ class Denis(object):
                     collect_objects(o)
             except TypeError:
                 name = model_name(obj)
-                # FIXME: skip m2m tables!
                 if name not in self.models and name not in self.models_blacklist:
                     self.models.append(name)
+
+                    m2m_fields = get_m2m_fields(obj)
+                    self.m2m_fields[name] = m2m_fields
                 self.objects[name].append(str(obj.pk))
 
         for obj in objs:
@@ -103,6 +115,19 @@ class Denis(object):
                     'name': model,
                     'fixture': output,
                 })
+
+                # we need to remove m2m fields from models in order to avoid
+                # double insertions errors
+                if model in self.m2m_fields:
+                    fixture_f = open(output, 'r')
+                    fixture = json.load(fixture_f)
+                    fixture_f.close()
+
+                    with open(output, 'w') as fixture_f:
+                        for instance in fixture:
+                            for field in self.m2m_fields[model]:
+                                instance['fields'][field] = []
+                        json.dump(fixture, fixture_f)
 
             manage_path = os.path.join(os.path.abspath(settings.BASE_DIR), 'manage.py')
             template = Template(DENIS_SH_TEMPLATE)
