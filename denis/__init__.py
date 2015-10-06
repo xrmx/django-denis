@@ -18,7 +18,7 @@ fi
 
 {% for model in models %}
 echo PROCESSING {{ model.name }}
-$MANAGE loaddata {{ model.fixture }}
+$MANAGE loaddata --database {{ database }} {{ model.fixture }}
 {% endfor %}
 """
 
@@ -79,7 +79,7 @@ class Denis(object):
         for obj in objs:
             collect_objects(obj)
 
-    def dump(self):
+    def dump(self, database=None):
         outdir = os.path.abspath(self.output_dir)
         try:
             os.mkdir(outdir)
@@ -87,6 +87,9 @@ class Denis(object):
             pass
         except:
             raise
+
+        if not database:
+            database = 'default'
 
         def model_fixture(outdir, model, format):
             return os.path.join(outdir, '%s.%s' % (model, self.format))
@@ -131,5 +134,5 @@ class Denis(object):
 
             manage_path = os.path.join(os.path.abspath(settings.BASE_DIR), 'manage.py')
             template = Template(DENIS_SH_TEMPLATE)
-            ctx = Context({'models': models, 'managepy': manage_path})
+            ctx = Context({'models': models, 'managepy': manage_path, 'database': database})
             f.write(template.render(ctx))
