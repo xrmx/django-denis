@@ -30,9 +30,6 @@ class Denis(object):
         self.output_dir = outdir
         self.using = using
 
-        self.models = []
-        self.objects = defaultdict(list)
-
         self.models_blacklist = kwargs.get('blacklist')
         if not self.models_blacklist:
             self.models_blacklist = []
@@ -45,14 +42,26 @@ class Denis(object):
         if not self.format:
             self.format = 'json'
 
-        # a cache of m2m fields per model
-        self.m2m_fields = {}
-
     def collect(self):
+        def collect_objects(obj):
+            try:
+                iter(obj)
+                for o in obj:
+                    collect_objects(o)
+            except TypeError:
+                flattened.append(obj)
+
         collector = NestedObjects(using=self.using)
         collector.collect(self.qs)
         objs = collector.nested()
+        flattened = []
 
+        for obj in objs:
+            collect_objects(obj)
+
+        return flattened
+
+    def _parse_collected_objects(self, objects):
         def model_name(obj):
             return "%s.%s" % (obj._meta.app_label, obj._meta.model_name)
 
@@ -62,22 +71,20 @@ class Denis(object):
                     if (f.many_to_many and not f.auto_created)
             ]
 
-        def collect_objects(obj):
-            try:
-                iter(obj)
-                for o in obj:
-                    collect_objects(o)
-            except TypeError:
-                name = model_name(obj)
-                if name not in self.models and name not in self.models_blacklist:
-                    self.models.append(name)
+        models = []
+        objects_ids = defaultdict(list)
+        m2m_fields = {}
 
-                    m2m_fields = get_m2m_fields(obj)
-                    self.m2m_fields[name] = m2m_fields
-                self.objects[name].append(str(obj.pk))
+        for obj in objects:
+            name = model_name(obj)
+            if name not in models and name not in self.models_blacklist:
+                models.append(name)
 
-        for obj in objs:
-            collect_objects(obj)
+                m2ms = get_m2m_fields(obj)
+                m2m_fields[name] = m2ms
+            objects_ids[name].append(str(obj.pk))
+
+        return models, objects_ids, m2m_fields
 
     def dump(self, database=None):
         outdir = os.path.abspath(self.output_dir)
@@ -96,11 +103,12 @@ class Denis(object):
 
         script = os.path.join(outdir, 'denis.sh')
         with open(script, 'w+') as f:
-            self.collect()
+            flat_models = self.collect()
+            models, objects_ids, m2m_fields = self._parse_collected_objects(flat_models)
 
-            models = []
-            for model in self.models:
-                pks = ','.join(self.objects[model])
+            models_to_dump = []
+            for model in models:
+                pks = ','.join(objects_ids[model])
                 output = model_fixture(outdir, model, self.format)
                 if os.path.exists(output):
                     os.unlink(output)
@@ -114,25 +122,25 @@ class Denis(object):
                     'exclude': [],
                 }
                 call_command('dumpdata', model, **opts)
-                models.append({
+                models_to_dump.append({
                     'name': model,
                     'fixture': output,
                 })
 
                 # we need to remove m2m fields from models in order to avoid
                 # double insertions errors
-                if model in self.m2m_fields:
+                if model in m2m_fields:
                     fixture_f = open(output, 'r')
                     fixture = json.load(fixture_f)
                     fixture_f.close()
 
                     with open(output, 'w') as fixture_f:
                         for instance in fixture:
-                            for field in self.m2m_fields[model]:
+                            for field in m2m_fields[model]:
                                 instance['fields'][field] = []
                         json.dump(fixture, fixture_f)
 
             manage_path = os.path.join(os.path.abspath(settings.BASE_DIR), 'manage.py')
             template = Template(DENIS_SH_TEMPLATE)
-            ctx = Context({'models': models, 'managepy': manage_path, 'database': database})
+            ctx = Context({'models': models_to_dump, 'managepy': manage_path, 'database': database})
             f.write(template.render(ctx))
