@@ -53,17 +53,25 @@ ROOT_URLCONF = 'test_django_denis.urls'
 
 WSGI_APPLICATION = 'test_django_denis.wsgi.application'
 
-
 # Database
+TEST_DB_NAME = os.path.join(BASE_DIR, 'test.db.sqlite3')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'TEST': {
+            'NAME': TEST_DB_NAME,
+        },
     },
     'backup': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'backup.db.sqlite3'),
-    }
+    },
+    'test': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': TEST_DB_NAME,
+    },
 }
 
 # Internationalization

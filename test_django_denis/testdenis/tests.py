@@ -11,7 +11,25 @@ from .models import SomeData
 
 
 class TestDenis(TestCase):
-    fixtures = ['testdata.json']
+
+    def test_recover(self):
+       appdir = os.path.abspath(os.path.dirname(__file__))
+       fixtures = os.path.join(appdir, 'fixtures', 'testdata.json')
+       # load fixtures into backup db
+       call_command('loaddata', fixtures, database='backup')
+       call_command('loaddata', fixtures, database='test')
+
+       SomeData.objects.using('test').get(pk=1).delete()
+       have_somedata = SomeData.objects.using('test').filter(pk=1).exists()
+       self.assertEqual(have_somedata, False)
+       qs = SomeData.objects.using('backup').filter(pk=1)
+       self.assertEqual(qs.exists(), True)
+
+       denis = Denis(qs, using='backup')
+       denis.recover(using='test')
+
+       somedata_isback = SomeData.objects.using('test').filter(pk=1).exists()
+       self.assertEqual(somedata_isback, True)
 
     def test_dump_and_load(self):
        appdir = os.path.abspath(os.path.dirname(__file__))
@@ -26,8 +44,8 @@ class TestDenis(TestCase):
        self.assertEqual(qs.exists(), True)
 
        outdir = os.path.join(appdir, '..', 'some-data-restore')
-       denis = Denis(qs, using='backup', outdir=outdir)
-       denis.dump()
+       denis = Denis(qs, using='backup')
+       denis.dump(outdir=outdir, database='test')
 
        have_dir = os.path.isdir(outdir)
        self.assertEqual(have_dir, True)

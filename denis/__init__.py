@@ -25,9 +25,8 @@ $MANAGE loaddata --database {{ database }} {{ model.fixture }}
 
 class Denis(object):
 
-    def __init__(self, qs, outdir, using, **kwargs):
+    def __init__(self, qs, using, **kwargs):
         self.qs = qs
-        self.output_dir = outdir
         self.using = using
 
         self.models_blacklist = kwargs.get('blacklist')
@@ -61,6 +60,26 @@ class Denis(object):
 
         return flattened
 
+    def recover(self, using):
+        objects = self.collect()
+        obj_per_model = {}
+        models = []
+
+        for obj in objects:
+            model_name = obj._meta.model_name
+            if model_name not in obj_per_model:
+                obj_per_model[model_name] = {
+                    'class': type(obj),
+                    'objs': []
+                }
+            obj_per_model[model_name]['objs'].append(obj)
+            models.append(model_name)
+
+        for model in models:
+            m = obj_per_model[model]
+            klass = m['class']
+            klass.objects.using(using).bulk_create(m['objs'])
+
     def _parse_collected_objects(self, objects):
         def model_name(obj):
             return "%s.%s" % (obj._meta.app_label, obj._meta.model_name)
@@ -86,8 +105,8 @@ class Denis(object):
 
         return models, objects_ids, m2m_fields
 
-    def dump(self, database=None):
-        outdir = os.path.abspath(self.output_dir)
+    def dump(self, outdir, database=None):
+        outdir = os.path.abspath(outdir)
         try:
             os.mkdir(outdir)
         except OSError:
