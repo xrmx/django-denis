@@ -7,7 +7,7 @@ import os
 
 from denis import Denis
 
-from .models import SomeData
+from .models import School, Class, Student, Teacher, Course
 
 
 class TestDenis(TestCase):
@@ -15,30 +15,36 @@ class TestDenis(TestCase):
     def test_recover(self):
        appdir = os.path.abspath(os.path.dirname(__file__))
        fixtures = os.path.join(appdir, 'fixtures', 'testdata.json')
+       auth = os.path.join(appdir, 'fixtures', 'auth.json')
        # load fixtures into backup db
+       call_command('loaddata', auth, database='backup')
        call_command('loaddata', fixtures, database='backup')
+       call_command('loaddata', auth, database='test')
        call_command('loaddata', fixtures, database='test')
 
-       SomeData.objects.using('test').get(pk=1).delete()
-       have_somedata = SomeData.objects.using('test').filter(pk=1).exists()
+       School.objects.using('test').get(pk=1).delete()
+       have_somedata = School.objects.using('test').filter(pk=1).exists()
        self.assertEqual(have_somedata, False)
-       qs = SomeData.objects.using('backup').filter(pk=1)
+       qs = School.objects.using('backup').filter(pk=1)
        self.assertEqual(qs.exists(), True)
 
        denis = Denis(qs, using='backup')
        denis.recover(using='test')
 
-       somedata_isback = SomeData.objects.using('test').filter(pk=1).exists()
-       self.assertEqual(somedata_isback, True)
+       school_isback = School.objects.using('test').filter(pk=1).exists()
+       self.assertEqual(school_isback, True)
 
     def test_dump_and_load(self):
        appdir = os.path.abspath(os.path.dirname(__file__))
        fixtures = os.path.join(appdir, 'fixtures', 'testdata.json')
+       auth = os.path.join(appdir, 'fixtures', 'auth.json')
+
        # load fixtures into backup db
+       call_command('loaddata', auth, database='backup')
        call_command('loaddata', fixtures, database='backup')
 
-       SomeData.objects.get(pk=1).delete()
-       have_somedata = SomeData.objects.filter(pk=1).exists()
+       School.objects.using('test').get(pk=1).delete()
+       have_somedata = School.objects.using('test').filter(pk=1).exists()
        self.assertEqual(have_somedata, False)
        qs = SomeData.objects.using('backup').filter(pk=1)
        self.assertEqual(qs.exists(), True)
@@ -56,7 +62,7 @@ class TestDenis(TestCase):
 
        call(['sh', denis_script_path])
 
-       somedata_isback = SomeData.objects.filter(pk=1).exists()
-       self.assertEqual(somedata_isback, True)
+       school_isback = School.objects.using('test').filter(pk=1).exists()
+       self.assertEqual(school_isback, True)
 
        rmtree(outdir)
