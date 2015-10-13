@@ -23,8 +23,8 @@ Installation
 Usage
 -----
 
-Given a queryset ``django-denis`` finds what the django admin would delete,
-dumps it and creates a shell script to load the data back with ``loaddata``.
+Given a queryset ``django-denis`` finds what the django admin would delete and recover
+them from a backup database.
 
 Here's an example session:
 
