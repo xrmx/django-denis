@@ -39,8 +39,8 @@ class Denis(object):
                     'class': type(obj),
                     'objs': []
                 }
+                models.append(model_name)
             obj_per_model[model_name]['objs'].append(obj)
-            models.append(model_name)
 
         for model in models:
             m = obj_per_model[model]
