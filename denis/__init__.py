@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-from django.contrib.admin.utils import NestedObjects
-
+try:
+    from django.contrib.admin.utils import NestedObjects
+except ImportError: # < django 1.7
+    from django.contrib.admin.util import NestedObjects
 
 class Denis(object):
 
