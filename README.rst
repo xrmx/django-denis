@@ -13,7 +13,7 @@ is called Denis.
 Requirements
 ------------
 
-- Django ``1.8``
+- Django >= ``1.6``
 
 Installation
 ------------

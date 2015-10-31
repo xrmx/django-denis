@@ -32,7 +32,7 @@ setup(
     platforms=['OS Independent'],
     classifiers=CLASSIFIERS,
     install_requires=[
-        'django>=1.8',
+        'django>=1.6',
     ],
     test_suite='runtests.runtests',
     packages=find_packages(exclude=["test_denis_project"]),
