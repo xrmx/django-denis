@@ -1,6 +1,9 @@
 django-denis
 ==============
 
+.. image:: https://travis-ci.org/xrmx/django-denis.svg
+    :target: https://travis-ci.org/xrmx/django-denis
+
 Denis helps you recovering accidentally deleted data from a django project.
 
 Rationale
