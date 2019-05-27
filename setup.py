@@ -24,7 +24,7 @@ setup(
     author="Riccardo Magliocchetti",
     author_email="riccardo.magliocchetti@gmail.com",
     name='django-denis',
-    version='0.2.0',
+    version='0.3.0',
     description='Denis helps you recovering accidentally deleted data from a django project',
     long_description=open(os.path.join(os.path.dirname(__file__), 'README.rst')).read(),
     url="https://github.com/xrmx/django-denis",
